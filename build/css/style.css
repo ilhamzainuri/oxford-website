@@ -1,0 +1,87 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+}
+
+header {
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('../img/bg1.jpg') no-repeat center center;
+    background-size: cover;
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+}
+.news-section {
+    background: rgba(255, 255, 255, 0.8); /* putih transparan */
+    padding: 50px 20px;
+}
+
+/* Background hanya untuk halaman About Us */
+body.about-page {
+    background-image: url('../img/bg2.jpg'); /* pastikan path-nya benar */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center; /* ubah dari center ke top center */
+}
+
+/* Tambahan: beri latar belakang terang agar teks tetap terbaca */
+body.about-page .about-section {
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.about-page .about-box {
+    border-radius: 10px;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Optional: agar teks tetap terbaca */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: efek bayangan */
+}
+
+#news .card {
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+#news .card-img-top {
+  height: 200px;
+  object-fit: cover;
+}
+
+#news .card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+#news .card-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+#news .card-text {
+  flex-grow: 1;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+#news .card .btn {
+  align-self: flex-start;
+}
+
+.achievements-page .carousel-item img {
+  height: 400px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.achievements-page .carousel-item {
+  transition: transform 0.8s ease-in-out;
+}
+
