@@ -1,22 +1,23 @@
 <?php
 include '../../db-connection/koneksi.php';
 
-// Ambil data fakultas dan jurusan untuk filter
 $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas ASC");
 $id_fakultas = $_GET['id_fakultas'] ?? '';
 $id_jurusan = $_GET['id_jurusan'] ?? '';
+$keyword = $_GET['keyword'] ?? '';
 $where = [];
 
-// Perbaikan filter berdasarkan struktur database yang benar
 if (!empty($id_fakultas)) {
   $where[] = "s.faculty_id = '" . mysqli_real_escape_string($conn, $id_fakultas) . "'";
 }
 if (!empty($id_jurusan)) {
   $where[] = "s.major_id = '" . mysqli_real_escape_string($conn, $id_jurusan) . "'";
 }
+if (!empty($keyword)) {
+  $where[] = "s.full_name LIKE '%" . mysqli_real_escape_string($conn, $keyword) . "%'";
+}
 $filter_sql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
-// Ambil mahasiswa + minat dengan filter yang benar
 $minat = mysqli_query($conn, "
   SELECT m.id, s.full_name, mp.nama_mapel, j.nama_jurusan, f.nama_fakultas
   FROM minat_mahasiswa m
@@ -28,13 +29,9 @@ $minat = mysqli_query($conn, "
   ORDER BY s.full_name ASC
 ");
 
-// Untuk dropdown jurusan - periksa apakah ada kolom id_fakultas di tabel jurusan
 if (!empty($id_fakultas)) {
-  // Coba query dengan id_fakultas terlebih dahulu
   $jurusan_query = "SELECT * FROM jurusan WHERE id_fakultas = '" . mysqli_real_escape_string($conn, $id_fakultas) . "' ORDER BY nama_jurusan ASC";
   $jurusan = mysqli_query($conn, $jurusan_query);
-  
-  // Jika error, berarti tidak ada kolom id_fakultas, gunakan join
   if (!$jurusan) {
     $jurusan = mysqli_query($conn, "
       SELECT DISTINCT j.* 
@@ -48,10 +45,6 @@ if (!empty($id_fakultas)) {
   $jurusan = mysqli_query($conn, "SELECT * FROM jurusan ORDER BY nama_jurusan ASC");
 }
 
-$mahasiswa = mysqli_query($conn, "SELECT * FROM student ORDER BY full_name ASC");
-$mapel = mysqli_query($conn, "SELECT * FROM mata_pelajaran ORDER BY nama_mapel ASC");
-
-// Buat array untuk menghindari konflik mysqli pointer
 $fakultas_array = [];
 $jurusan_array = [];
 
@@ -59,7 +52,6 @@ mysqli_data_seek($fakultas, 0);
 while ($f = mysqli_fetch_assoc($fakultas)) {
   $fakultas_array[] = $f;
 }
-
 if ($jurusan) {
   mysqli_data_seek($jurusan, 0);
   while ($j = mysqli_fetch_assoc($jurusan)) {
@@ -84,7 +76,6 @@ if ($jurusan) {
     <div class="col-9 p-4">
       <h3>Minat Mahasiswa</h3>
 
-      <!-- Filter Form -->
       <form method="GET" class="row g-2 mb-4">
         <div class="col-md-3">
           <select name="id_fakultas" class="form-select" onchange="this.form.submit()">
@@ -106,12 +97,14 @@ if ($jurusan) {
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="col-md-3">
-          <a href="minat.php" class="btn btn-secondary">Reset Filter</a>
+        <div class="col-md-4">
+          <input type="text" name="keyword" class="form-control" placeholder="Cari Nama Mahasiswa..." value="<?= htmlspecialchars($keyword) ?>">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Cari</button>
         </div>
       </form>
 
-      <!-- Tabel Data Minat -->
       <div class="table-responsive">
         <table class="table table-bordered">
           <thead class="table-dark">
@@ -146,20 +139,17 @@ if ($jurusan) {
         </table>
       </div>
 
-      <!-- Informasi Total -->
       <div class="mt-3">
         <p class="text-muted">
           Total: <?= mysqli_num_rows($minat) ?> data minat mahasiswa
-          <?php if (!empty($id_fakultas) || !empty($id_jurusan)): ?>
-            (dengan filter)
+          <?php if (!empty($id_fakultas) || !empty($id_jurusan) || !empty($keyword)): ?>
+            (dengan filter/pencarian)
           <?php endif; ?>
         </p>
       </div>
-
     </div>
   </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

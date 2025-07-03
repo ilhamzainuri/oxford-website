@@ -10,13 +10,16 @@ if (isset($_POST['verifikasi'])) {
   exit;
 }
 
-// Ambil data mahasiswa dan status penerimaan
+// Cek keyword pencarian
+$keyword = $_GET['keyword'] ?? '';
+
 $mahasiswa = mysqli_query($conn, "
-SELECT student.*, jurusan.nama_jurusan, fakultas.nama_fakultas
-FROM student
-JOIN jurusan ON student.major_id = jurusan.id_jurusan
-JOIN fakultas ON student.faculty_id = fakultas.id_fakultas
-ORDER BY student.full_name ASC
+  SELECT student.*, jurusan.nama_jurusan, fakultas.nama_fakultas
+  FROM student
+  JOIN jurusan ON student.major_id = jurusan.id_jurusan
+  JOIN fakultas ON student.faculty_id = fakultas.id_fakultas
+  " . ($keyword ? "WHERE student.full_name LIKE '%$keyword%'" : "") . "
+  ORDER BY student.full_name ASC
 ");
 ?>
 
@@ -35,6 +38,13 @@ ORDER BY student.full_name ASC
     </div>
     <div class="col-9 p-4">
       <h3>Status Penerimaan Mahasiswa</h3>
+
+      <!-- Form Pencarian -->
+      <form method="GET" class="mb-3 d-flex">
+        <input type="text" class="form-control me-2" name="keyword" placeholder="Cari nama mahasiswa..." value="<?= htmlspecialchars($keyword) ?>">
+        <button type="submit" class="btn btn-secondary">Cari</button>
+      </form>
+
       <table class="table table-bordered">
         <thead class="table-dark">
           <tr>
@@ -47,26 +57,30 @@ ORDER BY student.full_name ASC
           </tr>
         </thead>
         <tbody>
-          <?php $no = 1; while($m = mysqli_fetch_assoc($mahasiswa)): ?>
-          <tr>
-            <td><?= $no++ ?></td>
-            <td><?= $m['full_name'] ?></td>
-            <td><?= $m['nama_fakultas'] ?></td>
-            <td><?= $m['nama_jurusan'] ?></td>
-            <td><?= $m['status_penerimaan'] ?? '-' ?></td>
-            <td>
-              <form method="POST" class="d-flex">
-                <input type="hidden" name="id" value="<?= $m['id'] ?>">
-                <select name="status" class="form-select me-2">
-                  <option value="Diproses" <?= ($m['status_penerimaan'] == 'Diproses') ? 'selected' : '' ?>>Diproses</option>
-                  <option value="Lolos Seleksi" <?= ($m['status_penerimaan'] == 'Lolos Seleksi') ? 'selected' : '' ?>>Lolos Seleksi</option>
-                  <option value="Tidak Lolos" <?= ($m['status_penerimaan'] == 'Tidak Lolos') ? 'selected' : '' ?>>Tidak Lolos</option>
-                </select>
-                <button type="submit" name="verifikasi" class="btn btn-primary btn-sm">Simpan</button>
-              </form>
-            </td>
-          </tr>
-          <?php endwhile; ?>
+          <?php if (mysqli_num_rows($mahasiswa) > 0): $no = 1; ?>
+            <?php while($m = mysqli_fetch_assoc($mahasiswa)): ?>
+            <tr>
+              <td><?= $no++ ?></td>
+              <td><?= htmlspecialchars($m['full_name']) ?></td>
+              <td><?= htmlspecialchars($m['nama_fakultas']) ?></td>
+              <td><?= htmlspecialchars($m['nama_jurusan']) ?></td>
+              <td><?= $m['status_penerimaan'] ?? '-' ?></td>
+              <td>
+                <form method="POST" class="d-flex">
+                  <input type="hidden" name="id" value="<?= $m['id'] ?>">
+                  <select name="status" class="form-select me-2">
+                    <option value="Belum Diterima" <?= ($m['status_penerimaan'] == 'Belum Diterima') ? 'selected' : '' ?>>Belum Diterima</option>
+                    <option value="Lolos Seleksi" <?= ($m['status_penerimaan'] == 'Lolos Seleksi') ? 'selected' : '' ?>>Lolos Seleksi</option>
+                    <option value="Ditolak" <?= ($m['status_penerimaan'] == 'Ditolak') ? 'selected' : '' ?>>Ditolak</option>
+                  </select>
+                  <button type="submit" name="verifikasi" class="btn btn-primary btn-sm">Simpan</button>
+                </form>
+              </td>
+            </tr>
+            <?php endwhile; ?>
+          <?php else: ?>
+            <tr><td colspan="6" class="text-center">Data tidak ditemukan.</td></tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>

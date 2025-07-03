@@ -1,31 +1,35 @@
 <?php
 include '../../db-connection/koneksi.php';
 
-// Ambil data fakultas dan jurusan
 $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas ASC");
 $jurusan = mysqli_query($conn, "SELECT * FROM jurusan ORDER BY nama_jurusan ASC");
 
-// Filter
-$filter_fakultas = isset($_GET['fakultas']) ? $_GET['fakultas'] : '';
-$filter_jurusan = isset($_GET['jurusan']) ? $_GET['jurusan'] : '';
+$filter_fakultas = $_GET['fakultas'] ?? '';
+$filter_jurusan = $_GET['jurusan'] ?? '';
+$keyword = $_GET['keyword'] ?? '';
 
-$where = "";
+$where = [];
+
 if ($filter_jurusan) {
-    $where = "WHERE mata_pelajaran.id_jurusan = '$filter_jurusan'";
+  $where[] = "mata_pelajaran.id_jurusan = '$filter_jurusan'";
 } elseif ($filter_fakultas) {
-    $where = "WHERE jurusan.id_fakultas = '$filter_fakultas'";
+  $where[] = "jurusan.id_fakultas = '$filter_fakultas'";
 }
 
-// Query mapel
+if (!empty($keyword)) {
+  $where[] = "mata_pelajaran.nama_mapel LIKE '%$keyword%'";
+}
+
+$where_sql = count($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
 $mapel = mysqli_query($conn, "
-  SELECT mata_pelajaran.*, jurusan.nama_jurusan, jurusan.id_fakultas 
+  SELECT mata_pelajaran.*, jurusan.nama_jurusan 
   FROM mata_pelajaran 
   JOIN jurusan ON mata_pelajaran.id_jurusan = jurusan.id_jurusan 
-  $where
+  $where_sql 
   ORDER BY nama_mapel ASC
 ");
 
-// Tambah
 if (isset($_POST['tambah'])) {
   $id_jurusan = $_POST['id_jurusan'];
   $nama_mapel = $_POST['nama_mapel'];
@@ -34,7 +38,6 @@ if (isset($_POST['tambah'])) {
   exit;
 }
 
-// Hapus
 if (isset($_GET['hapus'])) {
   $id = $_GET['hapus'];
   mysqli_query($conn, "DELETE FROM mata_pelajaran WHERE id_mapel = $id");
@@ -42,7 +45,6 @@ if (isset($_GET['hapus'])) {
   exit;
 }
 
-// Edit
 if (isset($_POST['edit'])) {
   $id = $_POST['id_mapel'];
   $id_jurusan = $_POST['id_jurusan'];
@@ -54,7 +56,7 @@ if (isset($_POST['edit'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <title>Data Mata Pelajaran</title>
@@ -69,11 +71,10 @@ if (isset($_POST['edit'])) {
     <div class="col-9 p-4">
       <h3>Data Mata Pelajaran</h3>
 
-      <!-- Filter Fakultas & Jurusan -->
       <form method="GET" class="row g-2 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <select name="fakultas" class="form-select" onchange="this.form.submit()">
-            <option value="">Filter Fakultas</option>
+            <option value="">Semua Fakultas</option>
             <?php while ($f = mysqli_fetch_assoc($fakultas)): ?>
               <option value="<?= $f['id_fakultas'] ?>" <?= ($f['id_fakultas'] == $filter_fakultas) ? 'selected' : '' ?>>
                 <?= $f['nama_fakultas'] ?>
@@ -81,9 +82,9 @@ if (isset($_POST['edit'])) {
             <?php endwhile; ?>
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <select name="jurusan" class="form-select" onchange="this.form.submit()">
-            <option value="">Filter Jurusan</option>
+            <option value="">Semua Jurusan</option>
             <?php mysqli_data_seek($jurusan, 0); while ($j = mysqli_fetch_assoc($jurusan)): ?>
               <?php if (!$filter_fakultas || $j['id_fakultas'] == $filter_fakultas): ?>
               <option value="<?= $j['id_jurusan'] ?>" <?= ($j['id_jurusan'] == $filter_jurusan) ? 'selected' : '' ?>>
@@ -93,12 +94,14 @@ if (isset($_POST['edit'])) {
             <?php endwhile; ?>
           </select>
         </div>
+        <div class="col-md-4">
+          <input type="text" name="keyword" class="form-control" placeholder="Cari mata pelajaran..." value="<?= htmlspecialchars($keyword) ?>">
+        </div>
         <div class="col-md-2">
-          <a href="mapel.php" class="btn btn-secondary w-100">Reset</a>
+          <button type="submit" class="btn btn-primary w-100">Cari</button>
         </div>
       </form>
 
-      <!-- Form Tambah -->
       <form method="POST" class="row g-2 mb-4">
         <div class="col-md-5">
           <input type="text" name="nama_mapel" class="form-control" placeholder="Nama Mata Pelajaran" required>
@@ -116,7 +119,6 @@ if (isset($_POST['edit'])) {
         </div>
       </form>
 
-      <!-- Tabel Data Mapel -->
       <table class="table table-bordered">
         <thead class="table-dark">
           <tr>
@@ -130,12 +132,12 @@ if (isset($_POST['edit'])) {
           <?php $no = 1; while($m = mysqli_fetch_assoc($mapel)): ?>
           <tr>
             <td><?= $no++ ?></td>
-            <td><?= $m['nama_mapel'] ?></td>
-            <td><?= $m['nama_jurusan'] ?></td>
+            <td><?= htmlspecialchars($m['nama_mapel']) ?></td>
+            <td><?= htmlspecialchars($m['nama_jurusan']) ?></td>
             <td>
               <form method="POST" class="d-inline-flex flex-wrap">
                 <input type="hidden" name="id_mapel" value="<?= $m['id_mapel'] ?>">
-                <input type="text" name="nama_mapel" value="<?= $m['nama_mapel'] ?>" class="form-control me-2 mb-1" required>
+                <input type="text" name="nama_mapel" value="<?= htmlspecialchars($m['nama_mapel']) ?>" class="form-control me-2 mb-1" required>
                 <select name="id_jurusan" class="form-select me-2 mb-1" required>
                   <?php mysqli_data_seek($jurusan, 0); while($j = mysqli_fetch_assoc($jurusan)): ?>
                     <option value="<?= $j['id_jurusan'] ?>" <?= ($j['id_jurusan'] == $m['id_jurusan']) ? 'selected' : '' ?>>

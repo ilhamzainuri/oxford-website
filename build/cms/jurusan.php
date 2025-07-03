@@ -1,7 +1,6 @@
 <?php
 include '../../db-connection/koneksi.php';
 
-// Tambah Jurusan
 if (isset($_POST['tambah'])) {
   $id_fakultas = $_POST['id_fakultas'];
   $nama_jurusan = $_POST['nama_jurusan'];
@@ -10,7 +9,6 @@ if (isset($_POST['tambah'])) {
   exit;
 }
 
-// Hapus Jurusan
 if (isset($_GET['hapus'])) {
   $id = $_GET['hapus'];
   mysqli_query($conn, "DELETE FROM jurusan WHERE id_jurusan = $id");
@@ -18,7 +16,6 @@ if (isset($_GET['hapus'])) {
   exit;
 }
 
-// Edit Jurusan
 if (isset($_POST['edit'])) {
   $id = $_POST['id_jurusan'];
   $id_fakultas = $_POST['id_fakultas'];
@@ -28,13 +25,31 @@ if (isset($_POST['edit'])) {
   exit;
 }
 
-// Ambil data
-$jurusan = mysqli_query($conn, "SELECT jurusan.*, fakultas.nama_fakultas FROM jurusan JOIN fakultas ON jurusan.id_fakultas = fakultas.id_fakultas ORDER BY jurusan.nama_jurusan ASC");
+$where = [];
+if (isset($_GET['filter_fakultas']) && $_GET['filter_fakultas'] !== '') {
+  $id_fakultas_filter = mysqli_real_escape_string($conn, $_GET['filter_fakultas']);
+  $where[] = "jurusan.id_fakultas = '$id_fakultas_filter'";
+}
+if (isset($_GET['keyword']) && $_GET['keyword'] !== '') {
+  $keyword = mysqli_real_escape_string($conn, $_GET['keyword']);
+  $where[] = "jurusan.nama_jurusan LIKE '%$keyword%'";
+}
+
+$where_clause = count($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$jurusan = mysqli_query($conn, "
+  SELECT jurusan.*, fakultas.nama_fakultas 
+  FROM jurusan 
+  JOIN fakultas ON jurusan.id_fakultas = fakultas.id_fakultas 
+  $where_clause 
+  ORDER BY jurusan.nama_jurusan ASC
+");
+
 $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas ASC");
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <title>Data Jurusan</title>
@@ -49,7 +64,28 @@ $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas A
     <div class="col-9 p-4">
       <h3>Data Jurusan</h3>
 
-      <!-- Form Tambah -->
+      <form method="GET" class="row g-2 mb-3">
+        <div class="col-md-4">
+          <select name="filter_fakultas" class="form-select" onchange="this.form.submit()">
+            <option value="">-- Semua Fakultas --</option>
+            <?php mysqli_data_seek($fakultas, 0); while($f = mysqli_fetch_assoc($fakultas)): ?>
+              <option value="<?= $f['id_fakultas'] ?>" <?= (isset($_GET['filter_fakultas']) && $_GET['filter_fakultas'] == $f['id_fakultas']) ? 'selected' : '' ?>>
+                <?= $f['nama_fakultas'] ?>
+              </option>
+            <?php endwhile; ?>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <input type="text" name="keyword" value="<?= $_GET['keyword'] ?? '' ?>" class="form-control" placeholder="Cari nama jurusan...">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-secondary w-100">Cari</button>
+        </div>
+        <div class="col-md-2">
+          <a href="jurusan.php" class="btn btn-outline-dark w-100">Reset</a>
+        </div>
+      </form>
+
       <form method="POST" class="row g-2 my-3">
         <div class="col-md-5">
           <input type="text" name="nama_jurusan" class="form-control" placeholder="Nama Jurusan" required>
@@ -57,7 +93,7 @@ $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas A
         <div class="col-md-5">
           <select name="id_fakultas" class="form-select" required>
             <option disabled selected>Pilih Fakultas</option>
-            <?php while($f = mysqli_fetch_assoc($fakultas)): ?>
+            <?php mysqli_data_seek($fakultas, 0); while($f = mysqli_fetch_assoc($fakultas)): ?>
               <option value="<?= $f['id_fakultas'] ?>"><?= $f['nama_fakultas'] ?></option>
             <?php endwhile; ?>
           </select>
@@ -67,7 +103,6 @@ $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas A
         </div>
       </form>
 
-      <!-- Tabel Data Jurusan -->
       <table class="table table-bordered">
         <thead class="table-dark">
           <tr>
@@ -84,7 +119,6 @@ $fakultas = mysqli_query($conn, "SELECT * FROM fakultas ORDER BY nama_fakultas A
             <td><?= $j['nama_jurusan'] ?></td>
             <td><?= $j['nama_fakultas'] ?></td>
             <td>
-              <!-- Form Edit -->
               <form method="POST" class="d-inline-flex flex-wrap">
                 <input type="hidden" name="id_jurusan" value="<?= $j['id_jurusan'] ?>">
                 <input type="text" name="nama_jurusan" value="<?= $j['nama_jurusan'] ?>" class="form-control me-2 mb-1" required>
